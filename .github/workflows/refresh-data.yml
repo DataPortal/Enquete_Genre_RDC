@@ -1,5 +1,7 @@
 name: Refresh dashboard data
-
+concurrency:
+  group: refresh-dashboard-data
+  cancel-in-progress: true
 on:
   schedule:
     - cron: "*/5 * * * *"
