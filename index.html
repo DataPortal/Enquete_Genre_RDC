@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+<head>
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Accueil | Enquête Genre – RDC</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<script defer src="assets/js/utils.js"></script>
+<script defer src="assets/js/charts.js"></script>
+<script defer src="assets/js/pages/index.js"></script>
+
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div class="brand">
+      <div class="logo-dot" aria-hidden="true"></div>
+      <div>
+        <div class="brand-title">Enquête Genre – Ministères (RDC)</div>
+        <div class="brand-subtitle">UN Women | Visualisation GitHub Pages</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="index.html" class="nav-link" data-nav="home">Accueil</a>
+      <a href="analyse.html" class="nav-link" data-nav="analyse">Analyse</a>
+      <a href="ministeres.html" class="nav-link" data-nav="ministeres">Ministères</a>
+      <a href="recommandations.html" class="nav-link" data-nav="reco">Recommandations</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+<section class="hero">
+  <h1 class="h1">Tableau de bord – Connaissance du genre (RDC)</h1>
+  <p class="p">Synthèse des résultats de l’enquête sur la connaissance et l’intégration du genre au sein des ministères sectoriels. Conçu pour le plaidoyer, la planification et le suivi des actions de renforcement des capacités.</p>
+  <div class="badges">
+    <div class="badge"><span class="dot"></span><strong>Période</strong> <span id="periodeCollecte">—</span></div>
+    <div class="badge"><span class="dot"></span><strong>Note méthodologique</strong> <span id="noteMethodo">—</span></div>
+  </div>
+</section>
+
+<section class="grid">
+  <div class="card" style="grid-column: span 3;">
+    <h2>Répondants</h2>
+    <div class="kpi"><div><div class="value" id="kpiRespondants">—</div><div class="label">Total soumis</div></div><div class="trend">Source: KoboToolbox</div></div>
+  </div>
+  <div class="card" style="grid-column: span 3;">
+    <h2>Formés au genre</h2>
+    <div class="kpi"><div><div class="value" id="kpiFormes">—</div><div class="label">% ayant reçu une formation</div></div><div class="trend">Capacités</div></div>
+  </div>
+  <div class="card" style="grid-column: span 3;">
+    <h2>Point focal genre</h2>
+    <div class="kpi"><div><div class="value" id="kpiPF">—</div><div class="label">% ministères avec PF</div></div><div class="trend">Gouvernance</div></div>
+  </div>
+  <div class="card" style="grid-column: span 3;">
+    <h2>Intégration</h2>
+    <div class="kpi"><div><div class="value" id="kpiIntegr">—</div><div class="label">% intégrant dans politiques</div></div><div class="trend">Mainstreaming</div></div>
+  </div>
+
+  <div class="card" style="grid-column: span 6;">
+    <h2>Distribution des scores de connaissance</h2>
+    <p class="sub">Répartition par tranche de score (exemple).</p>
+    <div class="canvas-wrap"><canvas id="chartScore"></canvas></div>
+  </div>
+  <div class="card" style="grid-column: span 6;">
+    <h2>Profil des répondants (sexe)</h2>
+    <p class="sub">Répartition (exemple) – à remplacer par vos données.</p>
+    <div class="canvas-wrap"><canvas id="chartSexe"></canvas></div>
+  </div>
+
+  <div class="card" style="grid-column: span 12;">
+    <h2>Score moyen</h2>
+    <div class="kpi">
+      <div>
+        <div class="value" id="kpiScore">—</div>
+        <div class="label">Score moyen de connaissance</div>
+      </div>
+      <div class="trend">Sur 100</div>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column: span 12;">
+    <h2>Message clé</h2>
+    <div class="callout">
+      <strong>À personnaliser :</strong> Insérer 2–3 conclusions principales (ex. lacunes de formation, besoin d’outils/guides, leadership, coordination, etc.).
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="small muted">Dernière mise à jour : <span id="lastUpdated">2026-02-10</span></div>
+    <div class="small muted">© UN Women – Prototype de visualisation (GitHub Pages)</div>
+  </div>
+</footer>
+
+</body>
+</html>
