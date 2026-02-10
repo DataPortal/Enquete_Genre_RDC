@@ -1,0 +1,31 @@
+{
+  "sections": [
+    {
+      "titre": "Court terme (0–3 mois) – Renforcement de capacités",
+      "description": "Actions rapides et à fort rendement pour améliorer la compréhension et l’application du genre.",
+      "items": [
+        "Déployer des sessions de formation ciblées (concepts de base, GIHA, budgétisation sensible au genre).",
+        "Standardiser un kit de collecte (questionnaires, glossaire, consignes d’éthique/confidentialité).",
+        "Mettre en place un mécanisme de support (clinique data/genre mensuelle)."
+      ]
+    },
+    {
+      "titre": "Moyen terme (3–12 mois) – Gouvernance et systèmes",
+      "description": "Institutionnaliser le genre dans les processus, outils et responsabilités.",
+      "items": [
+        "Désigner/renforcer les points focaux genre par ministère et clarifier leurs termes de référence.",
+        "Intégrer des indicateurs genre dans les cadres de performance sectoriels et les plans de travail.",
+        "Mettre en place un suivi trimestriel (tableau de bord + note d’analyse)."
+      ]
+    },
+    {
+      "titre": "Qualité & redevabilité – Données et utilisation",
+      "description": "Améliorer la qualité des données et leur utilisation dans la décision.",
+      "items": [
+        "Améliorer la désagrégation systématique (sexe, âge, handicap, localisation).",
+        "Instaurer un protocole de contrôle qualité (validation, cohérence, valeurs manquantes).",
+        "Produire des produits de synthèse prêts à l’emploi (1-pager, infographies, briefs)."
+      ]
+    }
+  ]
+}
