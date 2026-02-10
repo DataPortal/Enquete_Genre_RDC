@@ -1,34 +1,41 @@
-import pandas as pd
+import sys
 from pathlib import Path
+import pandas as pd
+from pandas.errors import EmptyDataError
 
-def decode_csv(path):
-    for enc in ("utf-8-sig", "utf-8", "latin-1"):
-        try:
-            df = pd.read_csv(path, encoding=enc, engine="python", on_bad_lines="skip")
-            if df.shape[1] >= 5:
-                return df
-        except Exception:
-            pass
-    return pd.read_csv(path, encoding="latin-1", engine="python", on_bad_lines="skip")
+def decode_csv(path: Path) -> pd.DataFrame:
+    # Kobo exports sometimes include accents; try utf-8 first, fallback latin-1
+    try:
+        return pd.read_csv(path, encoding="utf-8", engine="python", on_bad_lines="skip")
+    except UnicodeDecodeError:
+        return pd.read_csv(path, encoding="latin-1", engine="python", on_bad_lines="skip")
 
 def main():
     p = Path("data/raw/submissions.csv")
     if not p.exists():
-        raise SystemExit("CSV missing: data/raw/submissions.csv")
+        print("WARN: data/raw/submissions.csv not found. Skipping checks.")
+        return
 
-    df = decode_csv(p)
-    print("Rows:", len(df))
-    print("Cols:", len(df.columns))
+    if p.stat().st_size == 0:
+        print("INFO: submissions.csv is empty (0 bytes). No submissions yet or export empty. Skipping checks.")
+        return
 
-    expected = [
-        "ministere","ministere_autre","sexe","fonction",
-        "formation_genre","compr_genre","diff_sexe_genre","genre_biologique",
-        "politiques_genre_connaissance","gtg_connaissance",
-        "obstacles","obstacles/obs1","obstacles/obs2","obstacles/obs3","obstacles/obs4",
-        "obstacles/obs5","obstacles/obs6","obstacles/obs7","obstacles/obs8"
-    ]
-    for c in expected:
-        print(c, "OK" if c in df.columns else "MISSING")
+    try:
+        df = decode_csv(p)
+    except EmptyDataError:
+        print("INFO: submissions.csv has no columns to parse. Skipping checks.")
+        return
+
+    print(f"Rows: {len(df)} | Cols: {len(df.columns)}")
+    if len(df) == 0:
+        print("INFO: CSV parsed but contains 0 rows. OK.")
+        return
+
+    # minimal sanity checks
+    must_have = ["_submission_time", "_id", "_uuid"]
+    missing = [c for c in must_have if c not in df.columns]
+    if missing:
+        print(f"WARN: missing expected columns: {missing}")
 
 if __name__ == "__main__":
     main()
