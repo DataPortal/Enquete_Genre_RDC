@@ -2,29 +2,20 @@
   "sections": [
     {
       "titre": "Court terme (0–3 mois) – Renforcement de capacités",
-      "description": "Actions rapides et à fort rendement pour améliorer la compréhension et l’application du genre.",
+      "description": "Actions rapides et à fort rendement.",
       "items": [
-        "Déployer des sessions de formation ciblées (concepts de base, GIHA, budgétisation sensible au genre).",
-        "Standardiser un kit de collecte (questionnaires, glossaire, consignes d’éthique/confidentialité).",
-        "Mettre en place un mécanisme de support (clinique data/genre mensuelle)."
+        "Former prioritairement les ministères à faible score (sessions courtes + coaching).",
+        "Standardiser un kit (glossaire, FAQ, check-list, questionnaires types).",
+        "Mettre en place une clinique mensuelle data/genre (support technique + validation)."
       ]
     },
     {
       "titre": "Moyen terme (3–12 mois) – Gouvernance et systèmes",
-      "description": "Institutionnaliser le genre dans les processus, outils et responsabilités.",
+      "description": "Institutionnaliser le genre dans les processus.",
       "items": [
-        "Désigner/renforcer les points focaux genre par ministère et clarifier leurs termes de référence.",
-        "Intégrer des indicateurs genre dans les cadres de performance sectoriels et les plans de travail.",
-        "Mettre en place un suivi trimestriel (tableau de bord + note d’analyse)."
-      ]
-    },
-    {
-      "titre": "Qualité & redevabilité – Données et utilisation",
-      "description": "Améliorer la qualité des données et leur utilisation dans la décision.",
-      "items": [
-        "Améliorer la désagrégation systématique (sexe, âge, handicap, localisation).",
-        "Instaurer un protocole de contrôle qualité (validation, cohérence, valeurs manquantes).",
-        "Produire des produits de synthèse prêts à l’emploi (1-pager, infographies, briefs)."
+        "Clarifier les ToR des points focaux/cellules genre et assurer un suivi trimestriel.",
+        "Intégrer des indicateurs genre dans les plans sectoriels et la budgétisation.",
+        "Produire un tableau de bord de suivi et une note d’analyse périodique."
       ]
     }
   ]
