@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ministères | Enquête Genre – RDC</title>
+<link rel="stylesheet" href="assets/css/style.css" />
+<script defer src="assets/js/utils.js"></script>
+<script defer src="assets/js/charts.js"></script>
+<script defer src="assets/js/pages/ministeres.js"></script>
+
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div class="brand">
+      <div class="logo-dot" aria-hidden="true"></div>
+      <div>
+        <div class="brand-title">Enquête Genre – Ministères (RDC)</div>
+        <div class="brand-subtitle">UN Women | Visualisation GitHub Pages</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="index.html" class="nav-link" data-nav="home">Accueil</a>
+      <a href="analyse.html" class="nav-link" data-nav="analyse">Analyse</a>
+      <a href="ministeres.html" class="nav-link" data-nav="ministeres">Ministères</a>
+      <a href="recommandations.html" class="nav-link" data-nav="reco">Recommandations</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+<section class="hero">
+  <h1 class="h1">Analyse par ministère</h1>
+  <p class="p">Comparer les performances entre ministères et filtrer selon la présence d’un point focal genre.</p>
+  <div class="controls">
+    <input id="qMinistere" type="search" placeholder="Rechercher un ministère (ex. Santé)..." />
+    <select id="fPointFocal">
+      <option value="all">Point focal : Tous</option>
+      <option value="yes">Point focal : Oui</option>
+      <option value="no">Point focal : Non</option>
+    </select>
+  </div>
+  <p class="small muted"><span id="countMinisteres">—</span> ministères affichés.</p>
+</section>
+
+<section class="grid">
+  <div class="card" style="grid-column: span 6;">
+    <h2>Top ministères (score)</h2>
+    <p class="sub">Top 10 selon le filtre appliqué.</p>
+    <div class="canvas-wrap"><canvas id="chartMinisteres"></canvas></div>
+  </div>
+
+  <div class="card" style="grid-column: span 6;">
+    <h2>Tableau comparatif</h2>
+    <p class="sub">Indicateurs agrégés par ministère.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ministère</th>
+            <th>% formé au genre</th>
+            <th>Point focal</th>
+            <th>% intégration</th>
+            <th>Score global</th>
+          </tr>
+        </thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" style="grid-column: span 12;">
+    <h2>Extension</h2>
+    <p class="small muted">Pour ajouter des filtres (sexe, fonction, province), étendez l’ETL <code>scripts/kobo_to_json.py</code> afin de produire d’autres fichiers JSON.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="small muted">Dernière mise à jour : <span id="lastUpdated">2026-02-10</span></div>
+    <div class="small muted">© UN Women – Prototype de visualisation (GitHub Pages)</div>
+  </div>
+</footer>
+
+</body>
+</html>
