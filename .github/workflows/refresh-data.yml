@@ -32,13 +32,13 @@ jobs:
           echo "KOBO_ASSET_ID=afJi5aBdhBgdJSGu3pVZXj" >> $GITHUB_ENV
           echo "KOBO_API_TOKEN=${{ secrets.KOBO_API_TOKEN }}" >> $GITHUB_ENV
 
-      - name: Pull Kobo CSV (via export-settings)
+      - name: Pull Kobo CSV (robust)
         run: python scripts/01_fetch_kobo_csv.py
 
-      - name: Quick check
+      - name: Quick check (non-blocking)
         run: python scripts/03_quick_check.py
 
-      - name: Build JSON
+      - name: Build JSON (robust even if empty)
         run: python scripts/02_build_json.py
 
       - name: Commit and push (if changes)
