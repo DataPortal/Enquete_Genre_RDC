@@ -2,14 +2,15 @@ name: Refresh dashboard data
 
 on:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "*/5 * * * *"   # toutes les 5 minutes
   workflow_dispatch:
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
+
     permissions:
-      contents: write   # nécessaire pour git push
+      contents: write
 
     steps:
       - name: Checkout
@@ -25,39 +26,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests
 
-      # ✅ Résout les variables d'env avec fallback:
-      # 1) vars.* (Variables) -> 2) secrets.* (Secrets) -> 3) valeur par défaut (server)
       - name: Resolve Kobo env (with fallback)
         shell: bash
         run: |
-          # KOBO_SERVER_URL (default: ee)
           if [ -n "${{ vars.KOBO_SERVER_URL }}" ]; then
             echo "KOBO_SERVER_URL=${{ vars.KOBO_SERVER_URL }}" >> $GITHUB_ENV
           elif [ -n "${{ secrets.KOBO_SERVER_URL }}" ]; then
             echo "KOBO_SERVER_URL=${{ secrets.KOBO_SERVER_URL }}" >> $GITHUB_ENV
           else
-            echo "KOBO_SERVER_URL=https://ee.kobotoolbox.org" >> $GITHUB_ENV
+            echo "KOBO_SERVER_URL=https://kf.kobotoolbox.org" >> $GITHUB_ENV
           fi
 
-          # KOBO_ASSET_ID (must exist either as variable or secret)
           if [ -n "${{ vars.KOBO_ASSET_ID }}" ]; then
             echo "KOBO_ASSET_ID=${{ vars.KOBO_ASSET_ID }}" >> $GITHUB_ENV
           elif [ -n "${{ secrets.KOBO_ASSET_ID }}" ]; then
             echo "KOBO_ASSET_ID=${{ secrets.KOBO_ASSET_ID }}" >> $GITHUB_ENV
           fi
 
-          # KOBO_API_TOKEN (must exist as secret ideally)
           if [ -n "${{ secrets.KOBO_API_TOKEN }}" ]; then
             echo "KOBO_API_TOKEN=${{ secrets.KOBO_API_TOKEN }}" >> $GITHUB_ENV
           fi
 
-      # ✅ Debug SAFE: affiche seulement OK/MISSING (pas de valeurs)
       - name: Debug env presence (safe)
         shell: bash
         run: |
           test -n "$KOBO_SERVER_URL" && echo "KOBO_SERVER_URL: OK" || echo "KOBO_SERVER_URL: MISSING"
           test -n "$KOBO_ASSET_ID" && echo "KOBO_ASSET_ID: OK" || echo "KOBO_ASSET_ID: MISSING"
           test -n "$KOBO_API_TOKEN" && echo "KOBO_API_TOKEN: OK" || echo "KOBO_API_TOKEN: MISSING"
+
           if [ -z "$KOBO_ASSET_ID" ] || [ -z "$KOBO_API_TOKEN" ]; then
             echo "ERROR: KOBO_ASSET_ID and KOBO_API_TOKEN are required."
             exit 1
