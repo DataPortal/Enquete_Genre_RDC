@@ -1,5 +1,6 @@
 # scripts/02_build_json.py
 # Kobo CSV -> JSON outputs for GitHub Pages dashboard
+#
 # Outputs:
 #   data/indicators.json  (DICT)
 #   data/breakdowns.json  (DICT)
@@ -10,8 +11,7 @@
 # - empty CSV / header-only CSV
 # - missing columns
 # - Kobo select_multiple stored as "opt1 opt2 opt3"
-#
-# Assumes CSV path: data/raw/submissions.csv
+# - multiple Kobo datetime formats for _submission_time
 
 from __future__ import annotations
 
@@ -69,6 +69,12 @@ def read_csv_robust(path: Path) -> pd.DataFrame:
     if not path.exists() or path.stat().st_size < 5:
         return pd.DataFrame()
 
+    # Quick guard: if file starts with HTML, it's not a CSV export
+    head = path.read_bytes()[:200].lower()
+    if b"<html" in head or b"<!doctype" in head:
+        # Return empty; upstream fetch script should be fixed
+        return pd.DataFrame()
+
     for enc in ("utf-8", "utf-8-sig", "latin-1"):
         try:
             df = pd.read_csv(path, encoding=enc, engine="python")
@@ -88,7 +94,7 @@ def clean_df(df: pd.DataFrame) -> pd.DataFrame:
     # normalize columns
     df.columns = [str(c).strip() for c in df.columns]
 
-    # strip strings
+    # strip strings (do not convert NaN to "nan" here)
     for c in df.columns:
         if df[c].dtype == "object":
             df[c] = df[c].astype(str).str.strip()
@@ -134,7 +140,6 @@ def safe_multi_counts(df: pd.DataFrame, col: str, top: int = 50) -> List[Dict[st
 
     tokens: List[str] = []
     for raw in s.tolist():
-        # handle cases like "obs1 obs3 obs7"
         parts = [p.strip() for p in str(raw).split() if p.strip()]
         tokens.extend(parts)
 
@@ -318,18 +323,32 @@ def build_breakdowns(df: pd.DataFrame) -> Dict[str, Any]:
 def build_timeseries(df: pd.DataFrame) -> List[Dict[str, Any]]:
     """
     timeseries.json is a LIST of {date, count}
+    Robust to multiple Kobo datetime formats, incl:
+    - "10/02/2026 09:18"
+    - "2026-02-10T09:18:47.762Z"
+    - "2026-02-10 10:07:50.951000+01:00"
     """
     if df is None or df.empty:
         return []
 
-    if COL["_submission_time"] not in df.columns:
+    col = COL["_submission_time"]
+    if col not in df.columns:
         return []
 
-    # Kobo _submission_time can be ISO or "10/02/2026 09:18"
-    ts = pd.to_datetime(df[COL["_submission_time"]], errors="coerce", dayfirst=True, utc=True)
-    tmp = df.copy()
-    tmp["_ts"] = ts
-    tmp = tmp.dropna(subset=["_ts"])
+    s = df[col].astype(str).str.strip()
+    s = s.replace("nan", "").replace("None", "")
+    s = s[s != ""]
+    if s.empty:
+        return []
+
+    # Try parse with dayfirst (FR), then fall back to generic parsing
+    ts = pd.to_datetime(s, errors="coerce", dayfirst=True, utc=True)
+
+    # If still all NaT, try without utc/dayfirst
+    if ts.notna().sum() == 0:
+        ts = pd.to_datetime(s, errors="coerce")
+
+    tmp = pd.DataFrame({"_ts": ts}).dropna()
     if tmp.empty:
         return []
 
@@ -358,6 +377,12 @@ def main() -> None:
             "csv_exists": CSV_PATH.exists(),
             "csv_bytes": CSV_PATH.stat().st_size if CSV_PATH.exists() else 0,
             "rows_after_consent_filter": int(len(df)) if df is not None else 0,
+            "submission_time_present": (COL["_submission_time"] in df.columns) if df is not None and not df.empty else False,
+            "submission_time_head": (
+                df[COL["_submission_time"]].head(3).astype(str).tolist()
+                if df is not None and not df.empty and (COL["_submission_time"] in df.columns)
+                else []
+            ),
             "indicators_keys": len(indicators.keys()) if isinstance(indicators, dict) else None,
             "breakdowns_keys": len(breakdowns.keys()) if isinstance(breakdowns, dict) else None,
             "timeseries_points": len(timeseries) if isinstance(timeseries, list) else None,
