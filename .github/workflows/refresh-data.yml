@@ -2,15 +2,14 @@ name: Refresh dashboard data
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # toutes les 5 minutes (peut avoir un léger délai selon GitHub)
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-
     permissions:
-      contents: write   # requis pour commit/push
+      contents: write
 
     steps:
       - name: Checkout
@@ -26,7 +25,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests
 
-      # --- IMPORTANT: injection stricte pour éviter KOBO_SERVER_URL vide / mal formée ---
       - name: Set Kobo env (strict)
         shell: bash
         run: |
@@ -34,22 +32,7 @@ jobs:
           echo "KOBO_ASSET_ID=afJi5aBdhBgdJSGu3pVZXj" >> $GITHUB_ENV
           echo "KOBO_API_TOKEN=${{ secrets.KOBO_API_TOKEN }}" >> $GITHUB_ENV
 
-      # --- Diagnostic safe (ne montre pas le token) ---
-      - name: Debug URLs (safe)
-        shell: bash
-        run: |
-          echo "KOBO_SERVER_URL=$KOBO_SERVER_URL"
-          echo "KOBO_ASSET_ID=$KOBO_ASSET_ID"
-          echo "ASSET: $KOBO_SERVER_URL/api/v2/assets/$KOBO_ASSET_ID/"
-          echo "DATA : $KOBO_SERVER_URL/api/v2/assets/$KOBO_ASSET_ID/data/?format=csv"
-          curl -s -o /dev/null -w "ASSET status=%{http_code}\n" \
-            -H "Authorization: Token $KOBO_API_TOKEN" \
-            "$KOBO_SERVER_URL/api/v2/assets/$KOBO_ASSET_ID/"
-          curl -s -o /dev/null -w "DATA  status=%{http_code}\n" \
-            -H "Authorization: Token $KOBO_API_TOKEN" \
-            "$KOBO_SERVER_URL/api/v2/assets/$KOBO_ASSET_ID/data/?format=csv"
-
-      - name: Pull Kobo CSV
+      - name: Pull Kobo CSV (via export-settings)
         run: python scripts/01_fetch_kobo_csv.py
 
       - name: Quick check
