@@ -1,0 +1,74 @@
+{
+  "sexe": [
+    {
+      "label": "Femmes",
+      "value": 58
+    },
+    {
+      "label": "Hommes",
+      "value": 62
+    }
+  ],
+  "fonction": [
+    {
+      "label": "Cadre",
+      "value": 38
+    },
+    {
+      "label": "Directeur(trice)",
+      "value": 22
+    },
+    {
+      "label": "Chef(fe) de service",
+      "value": 28
+    },
+    {
+      "label": "Autres",
+      "value": 32
+    }
+  ],
+  "score_bins": [
+    {
+      "label": "0-20",
+      "value": 8
+    },
+    {
+      "label": "21-40",
+      "value": 24
+    },
+    {
+      "label": "41-60",
+      "value": 46
+    },
+    {
+      "label": "61-80",
+      "value": 30
+    },
+    {
+      "label": "81-100",
+      "value": 12
+    }
+  ],
+  "obstacles": [
+    {
+      "label": "Manque de formation",
+      "value": 74
+    },
+    {
+      "label": "Manque d’outils / guides",
+      "value": 55
+    },
+    {
+      "label": "Manque de ressources",
+      "value": 49
+    },
+    {
+      "label": "Leadership / priorisation faible",
+      "value": 38
+    },
+    {
+      "label": "Coordination limitée",
+      "value": 33
+    }
+  ]
+}
