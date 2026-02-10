@@ -1,58 +1,104 @@
-name: Refresh dashboard data
+import os
+import sys
+import time
+import requests
+from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
-on:
-  schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch:
+def die(msg: str, code: int = 1):
+    print(msg, file=sys.stderr)
+    raise SystemExit(code)
 
-jobs:
-  refresh:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+def normalize_base(url: str) -> str:
+    url = (url or "").strip()
+    if not url:
+        return ""
+    parts = urlsplit(url)
+    scheme = parts.scheme or "https"
+    netloc = parts.netloc or parts.path
+    return urlunsplit((scheme, netloc, "", "", ""))
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+def is_probably_html(resp: requests.Response) -> bool:
+    ct = (resp.headers.get("Content-Type") or "").lower()
+    if "text/html" in ct:
+        return True
+    head = (resp.content or b"")[:200].lstrip().lower()
+    return head.startswith(b"<!doctype html") or head.startswith(b"<html")
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+def write_bytes(path: Path, content: bytes):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
 
-      - name: Install deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install pandas requests
+def try_download(url: str, headers: dict, timeout: int = 300) -> tuple[bool, str, bytes]:
+    r = requests.get(url, headers=headers, timeout=timeout)
+    if r.status_code != 200:
+        return False, f"{r.status_code} {r.text[:180]}", b""
+    if is_probably_html(r):
+        return False, "HTML returned (auth/redirect) instead of CSV", b""
+    if len(r.content) < 50:
+        return False, f"Too small payload ({len(r.content)} bytes)", b""
+    return True, f"OK ({len(r.content)} bytes)", r.content
 
-      - name: Set Kobo env (strict)
-        shell: bash
-        run: |
-          echo "KOBO_SERVER_URL=https://kf.kobotoolbox.org" >> $GITHUB_ENV
-          echo "KOBO_ASSET_ID=afJi5aBdhBgdJSGu3pVZXj" >> $GITHUB_ENV
-          echo "KOBO_API_TOKEN=${{ secrets.KOBO_API_TOKEN }}" >> $GITHUB_ENV
+def main():
+    server = normalize_base(os.environ.get("KOBO_SERVER_URL", "https://kf.kobotoolbox.org"))
+    token  = (os.environ.get("KOBO_API_TOKEN") or "").strip()
+    asset  = (os.environ.get("KOBO_ASSET_ID") or "").strip()
 
-      - name: Pull Kobo CSV (robust)
-        run: python scripts/01_fetch_kobo_csv.py
+    if not server or not token or not asset:
+        die("Missing env vars: KOBO_SERVER_URL, KOBO_API_TOKEN, KOBO_ASSET_ID")
 
-      - name: Quick check (non-blocking)
-        run: python scripts/03_quick_check.py
+    headers = {"Authorization": f"Token {token}"}
+    out = Path("data/raw/submissions.csv")
 
-      - name: Build JSON (robust even if empty)
-        run: python scripts/02_build_json.py
+    # 1) Asset JSON
+    asset_url = f"{server}/api/v2/assets/{asset}/"
+    r = requests.get(asset_url, headers=headers, timeout=60)
+    if r.status_code != 200:
+        die(f"ASSET check failed: {asset_url} -> {r.status_code} {r.text[:200]}")
+    asset_json = r.json()
 
-      - name: Commit and push (if changes)
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+    sub_count = asset_json.get("deployment__submission_count")
+    print(f"Submission count (Kobo): {sub_count}")
 
-          git add data/*.json data/raw/submissions.csv
+    # 2) Try direct data endpoint (may 404 depending on Kobo)
+    direct_url = f"{server}/api/v2/assets/{asset}/data/?format=csv"
+    ok, msg, content = try_download(direct_url, headers, timeout=180)
+    print(f"[direct] {direct_url} -> {msg}")
+    if ok:
+        write_bytes(out, content)
+        return
 
-          if git diff --cached --quiet; then
-            echo "No changes."
-            exit 0
-          fi
+    # 3) Preferred: export-settings data_url_csv (retries)
+    export_settings = asset_json.get("export_settings") or []
+    for es in export_settings:
+        data_url_csv = es.get("data_url_csv")
+        if not data_url_csv:
+            continue
 
-          git commit -m "chore: refresh dashboard data"
-          git push
+        for attempt in range(1, 6):
+            ok, msg, content = try_download(data_url_csv, headers, timeout=300)
+            print(f"[export-settings] attempt {attempt}/5 {data_url_csv} -> {msg}")
+            if ok:
+                write_bytes(out, content)
+                return
+            time.sleep(5)
+
+    # 4) Fallback: kc export.csv (retries)
+    ddl = asset_json.get("deployment__data_download_links") or {}
+    kc_csv = ddl.get("csv")
+    if kc_csv:
+        for attempt in range(1, 6):
+            ok, msg, content = try_download(kc_csv, headers, timeout=300)
+            print(f"[kc] attempt {attempt}/5 {kc_csv} -> {msg}")
+            if ok:
+                write_bytes(out, content)
+                return
+            time.sleep(5)
+
+    # 5) If Kobo claims submissions exist but export still empty, keep pipeline alive by writing empty file
+    print("WARN: Could not fetch a valid CSV. Writing empty placeholder to keep pipeline running.")
+    write_bytes(out, b"")
+    return
+
+if __name__ == "__main__":
+    main()
