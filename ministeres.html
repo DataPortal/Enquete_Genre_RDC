@@ -1,7 +1,4 @@
-<!doctype html>
-<html lang="fr">
-<head>
-
+<!doctype html><html lang='fr'><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Ministères | Enquête Genre – RDC</title>
@@ -9,17 +6,14 @@
 <script defer src="assets/js/utils.js"></script>
 <script defer src="assets/js/charts.js"></script>
 <script defer src="assets/js/pages/ministeres.js"></script>
-
-</head>
-<body>
-
+</head><body>
 <header class="topbar">
   <div class="container topbar-inner">
     <div class="brand">
       <div class="logo-dot" aria-hidden="true"></div>
       <div>
         <div class="brand-title">Enquête Genre – Ministères (RDC)</div>
-        <div class="brand-subtitle">UN Women | Visualisation GitHub Pages</div>
+        <div class="brand-subtitle">UN Women | Dashboard (GitHub Pages)</div>
       </div>
     </div>
     <nav class="nav">
@@ -30,63 +24,51 @@
     </nav>
   </div>
 </header>
-
-<main class="container">
-
-<section class="hero">
-  <h1 class="h1">Analyse par ministère</h1>
-  <p class="p">Comparer les performances entre ministères et filtrer selon la présence d’un point focal genre.</p>
+<main class='container'>
+<section class="hero"><div class="hero-card">
+  <h1 class="h1">Ministères</h1>
+  <p class="p">Comparer, filtrer, trier et exporter.</p>
   <div class="controls">
-    <input id="qMinistere" type="search" placeholder="Rechercher un ministère (ex. Santé)..." />
+    <input id="qMinistere" type="search" placeholder="Rechercher un ministère..." />
     <select id="fPointFocal">
-      <option value="all">Point focal : Tous</option>
-      <option value="yes">Point focal : Oui</option>
-      <option value="no">Point focal : Non</option>
+      <option value="all">Point focal/cellule : Tous</option>
+      <option value="yes">Point focal/cellule : Oui</option>
+      <option value="no">Point focal/cellule : Non</option>
     </select>
+    <select id="fTri">
+      <option value="score_desc">Trier : Score ↓</option>
+      <option value="score_asc">Trier : Score ↑</option>
+      <option value="formes_desc">Trier : % Formés ↓</option>
+      <option value="formes_asc">Trier : % Formés ↑</option>
+      <option value="alpha_asc">Trier : A→Z</option>
+      <option value="alpha_desc">Trier : Z→A</option>
+    </select>
+    <button id="btnExport">Exporter CSV (table)</button>
   </div>
   <p class="small muted"><span id="countMinisteres">—</span> ministères affichés.</p>
-</section>
-
+</div></section>
 <section class="grid">
-  <div class="card" style="grid-column: span 6;">
-    <h2>Top ministères (score)</h2>
-    <p class="sub">Top 10 selon le filtre appliqué.</p>
-    <div class="canvas-wrap"><canvas id="chartMinisteres"></canvas></div>
-  </div>
-
-  <div class="card" style="grid-column: span 6;">
-    <h2>Tableau comparatif</h2>
-    <p class="sub">Indicateurs agrégés par ministère.</p>
+  <div class="card" style="grid-column: span 6;"><h2>Top 10 (score)</h2><p class="sub">Selon filtres.</p><div class="canvas-wrap"><canvas id="chartMinisteres"></canvas></div></div>
+  <div class="card" style="grid-column: span 6;"><h2>Tableau comparatif</h2><p class="sub">Clic sur les en-têtes pour trier.</p>
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Ministère</th>
-            <th>% formé au genre</th>
-            <th>Point focal</th>
-            <th>% intégration</th>
-            <th>Score global</th>
-          </tr>
-        </thead>
+      <table id="tbl">
+        <thead><tr>
+          <th data-sort="ministere">Ministère</th>
+          <th data-sort="formes_genre">% formé</th>
+          <th data-sort="point_focal">PF/cellule</th>
+          <th data-sort="integration">% intégration</th>
+          <th data-sort="score">Score</th>
+        </tr></thead>
         <tbody id="tblBody"></tbody>
       </table>
     </div>
   </div>
-
-  <div class="card" style="grid-column: span 12;">
-    <h2>Extension</h2>
-    <p class="small muted">Pour ajouter des filtres (sexe, fonction, province), étendez l’ETL <code>scripts/kobo_to_json.py</code> afin de produire d’autres fichiers JSON.</p>
-  </div>
 </section>
-
 </main>
-
 <footer class="footer">
   <div class="container">
     <div class="small muted">Dernière mise à jour : <span id="lastUpdated">2026-02-10</span></div>
-    <div class="small muted">© UN Women – Prototype de visualisation (GitHub Pages)</div>
+    <div class="small muted">© UN Women – Visualisation (GitHub Pages)</div>
   </div>
 </footer>
-
-</body>
-</html>
+</body></html>
