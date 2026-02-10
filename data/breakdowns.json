@@ -1,1 +1,19 @@
-[]
+def safe_value_counts(df: pd.DataFrame, col: str, top: int = 20):
+    if df is None or df.empty or col not in df.columns:
+        return []
+    s = df[col].astype(str).replace("nan", "").replace("None", "").str.strip()
+    s = s[s != ""]
+    vc = s.value_counts().head(top)
+    return [{"label": k, "value": int(v)} for k, v in vc.items()]
+
+def build_breakdowns(df: pd.DataFrame) -> dict:
+    # Toujours retourner un objet (dict), jamais une liste.
+    return {
+        "by_ministere": safe_value_counts(df, "ministere", 50),
+        "by_sexe": safe_value_counts(df, "sexe", 10),
+        "by_fonction": safe_value_counts(df, "fonction", 20),
+        "by_compr_genre": safe_value_counts(df, "compr_genre", 10),
+        "by_freq_formations": safe_value_counts(df, "frequence_formations_genre", 10),
+        "by_obstacles": safe_value_counts(df, "obstacles", 30),
+        "by_actions": safe_value_counts(df, "actions", 30),
+    }
