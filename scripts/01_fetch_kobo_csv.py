@@ -3,7 +3,7 @@ import sys
 import requests
 from pathlib import Path
 
-def die(msg, code=1):
+def die(msg: str, code: int = 1):
     print(msg, file=sys.stderr)
     raise SystemExit(code)
 
@@ -23,7 +23,7 @@ def main():
     if r.status_code != 200:
         die(f"Asset validation failed: GET {asset_url} -> {r.status_code} {r.text[:200]}")
 
-    # 2) Download CSV from /data
+    # 2) Download CSV from /data endpoint (works on kf)
     csv_url = f"{server}/api/v2/assets/{asset}/data/?format=csv"
     r = requests.get(csv_url, headers=headers, timeout=180)
     if r.status_code != 200:
