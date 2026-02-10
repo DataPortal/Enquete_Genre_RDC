@@ -1,7 +1,4 @@
-<!doctype html>
-<html lang="fr">
-<head>
-
+<!doctype html><html lang='fr'><head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Analyse | Enquête Genre – RDC</title>
@@ -9,17 +6,14 @@
 <script defer src="assets/js/utils.js"></script>
 <script defer src="assets/js/charts.js"></script>
 <script defer src="assets/js/pages/analyse.js"></script>
-
-</head>
-<body>
-
+</head><body>
 <header class="topbar">
   <div class="container topbar-inner">
     <div class="brand">
       <div class="logo-dot" aria-hidden="true"></div>
       <div>
         <div class="brand-title">Enquête Genre – Ministères (RDC)</div>
-        <div class="brand-subtitle">UN Women | Visualisation GitHub Pages</div>
+        <div class="brand-subtitle">UN Women | Dashboard (GitHub Pages)</div>
       </div>
     </div>
     <nav class="nav">
@@ -30,58 +24,24 @@
     </nav>
   </div>
 </header>
-
-<main class="container">
-
-<section class="hero">
-  <h1 class="h1">Analyse globale</h1>
-  <p class="p">Tendances principales : profil des répondants, niveau de connaissance du genre et obstacles identifiés.</p>
-</section>
-
+<main class='container'>
+<section class="hero"><div class="hero-card">
+  <h1 class="h1">Analyse</h1>
+  <p class="p">Tendances principales : profil des répondants, score de connaissance (calculé) et obstacles.</p>
+</div></section>
 <section class="grid">
-  <div class="card" style="grid-column: span 6;">
-    <h2>Répartition par fonction</h2>
-    <p class="sub">Exemple de distribution.</p>
-    <div class="canvas-wrap"><canvas id="chartFonction"></canvas></div>
+  <div class="card" style="grid-column: span 6;"><h2>Répartition par fonction</h2><p class="sub">Distribution.</p><div class="canvas-wrap"><canvas id="chartFonction"></canvas></div></div>
+  <div class="card" style="grid-column: span 6;"><h2>Score moyen</h2><p class="sub">Indicateur synthétique.</p>
+    <div class="kpi"><div><div class="value" id="kpiScore">—</div><div class="label">Score moyen (0–100)</div></div><div class="trend">Qualité</div></div>
+    <p class="small muted">Score basé sur 5 items: compr_genre, diff_sexe_genre, genre_biologique, politiques_genre_connaissance, gtg_connaissance.</p>
   </div>
-
-  <div class="card" style="grid-column: span 6;">
-    <h2>Score moyen</h2>
-    <p class="sub">Indicateur synthétique.</p>
-    <div class="kpi">
-      <div>
-        <div class="value" id="kpiScore">—</div>
-        <div class="label">Score moyen de connaissance</div>
-      </div>
-      <div class="trend">Comparer par ministère</div>
-    </div>
-    <p class="small muted">Utilisez la page « Ministères » pour la comparaison et le ciblage.</p>
-  </div>
-
-  <div class="card" style="grid-column: span 12;">
-    <h2>Obstacles à l’intégration du genre</h2>
-    <p class="sub">Classement des obstacles les plus fréquents (exemple).</p>
-    <div class="canvas-wrap"><canvas id="chartObstacles"></canvas></div>
-  </div>
-
-  <div class="card" style="grid-column: span 12;">
-    <h2>Pistes d’interprétation</h2>
-    <ul>
-      <li>Prioriser les ministères à faible score et faible couverture de formation.</li>
-      <li>Aligner les actions sur les besoins (formation, outils, leadership, coordination).</li>
-      <li>Traduire les constats en plan d’action suivi par indicateurs.</li>
-    </ul>
-  </div>
+  <div class="card" style="grid-column: span 12;"><h2>Obstacles (classement)</h2><p class="sub">Top obstacles.</p><div class="canvas-wrap"><canvas id="chartObstacles"></canvas></div></div>
 </section>
-
 </main>
-
 <footer class="footer">
   <div class="container">
     <div class="small muted">Dernière mise à jour : <span id="lastUpdated">2026-02-10</span></div>
-    <div class="small muted">© UN Women – Prototype de visualisation (GitHub Pages)</div>
+    <div class="small muted">© UN Women – Visualisation (GitHub Pages)</div>
   </div>
 </footer>
-
-</body>
-</html>
+</body></html>
