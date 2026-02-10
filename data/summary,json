@@ -1,9 +1,9 @@
 {
-  "total_repondants": 120,
-  "pourcentage_formes_genre": 42,
-  "ministeres_avec_point_focal": 35,
-  "integration_politiques": 28,
-  "score_moyen_connaissance": 56,
-  "periode_collecte": "2026-01-20 → 2026-02-05",
-  "note_methodo": "Enquête KoboToolbox – auto-administrée / interview assistée"
+  "total_repondants": 0,
+  "pourcentage_formes_genre": 0,
+  "ministeres_avec_point_focal": 0,
+  "integration_politiques": 0,
+  "score_moyen_connaissance": 0,
+  "periode_collecte": "",
+  "note_methodo": "Export KoboToolbox (CSV) – pipeline GitHub Actions"
 }
