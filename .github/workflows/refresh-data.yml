@@ -1,8 +1,8 @@
-name: Refresh data (weekly)
+name: Refresh dashboard data
 
 on:
   schedule:
-    - cron: "0 6 * * 1"  # every Monday 06:00 UTC
+    - cron: "0 6 * * 1"   # Lundi 06:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -17,30 +17,28 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install pandas
+          pip install pandas requests
 
-      # TODO: remplacez cette étape par la récupération réelle depuis Kobo (API ou export)
-      - name: Placeholder (no data pull)
+      - name: Pull Kobo CSV
+        env:
+          KOBO_SERVER_URL: ${{ vars.KOBO_SERVER_URL }}
+          KOBO_ASSET_ID: ${{ vars.KOBO_ASSET_ID }}
+          KOBO_API_TOKEN: ${{ secrets.KOBO_API_TOKEN }}
         run: |
-          echo "TODO: Pull Kobo export into data/raw/submissions.csv"
-          mkdir -p data/raw
+          python scripts/01_fetch_kobo_csv.py
 
-      - name: Build JSON from CSV (if exists)
+      - name: Build JSON
         run: |
-          if [ -f "data/raw/submissions.csv" ]; then
-            python scripts/kobo_to_json.py data/raw/submissions.csv
-          else
-            echo "No CSV found; skipping build."
-          fi
+          python scripts/02_build_json.py
 
       - name: Commit and push (if changes)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/*.json
+          git add data/*.json data/raw/submissions.csv
           if git diff --cached --quiet; then
             echo "No changes."
           else
