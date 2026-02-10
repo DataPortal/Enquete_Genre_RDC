@@ -1,14 +1,4 @@
 {
-  "key_message": "À personnaliser : résultats clés + recommandation immédiate.",
-  "obstacle_labels": {
-    "OBS1": "Manque de formation/compétences",
-    "OBS2": "Manque d’outils et guides",
-    "OBS3": "Manque de ressources financières",
-    "OBS4": "Faible leadership/priorisation",
-    "OBS5": "Coordination limitée",
-    "OBS6": "Données insuffisantes/qualité faible",
-    "OBS7": "Résistance au changement / normes sociales",
-    "OBS8": "Autre obstacle"
-  },
-  "ministere_labels": {}
+  "generated": "empty",
+  "rows": 0
 }
