@@ -17,13 +17,13 @@ def main():
 
     headers = {"Authorization": f"Token {token}"}
 
-    # 1) Validate asset exists
+    # 1) validate asset exists (catches wrong server/uid)
     asset_url = f"{server}/api/v2/assets/{asset}/"
     r = requests.get(asset_url, headers=headers, timeout=60)
     if r.status_code != 200:
         die(f"Asset validation failed: GET {asset_url} -> {r.status_code} {r.text[:200]}")
 
-    # 2) Download CSV from /data endpoint (works on kf)
+    # 2) export csv via /data (works on kf)
     csv_url = f"{server}/api/v2/assets/{asset}/data/?format=csv"
     r = requests.get(csv_url, headers=headers, timeout=180)
     if r.status_code != 200:
@@ -34,7 +34,7 @@ def main():
     out_path.write_bytes(r.content)
 
     if out_path.stat().st_size < 50:
-        die(f"CSV downloaded but looks empty/small ({out_path.stat().st_size} bytes). Check if submissions exist.")
+        die(f"CSV downloaded but looks empty/small ({out_path.stat().st_size} bytes). Check submissions.")
 
     print(f"Downloaded CSV OK: {csv_url} -> {out_path} ({out_path.stat().st_size} bytes)")
 
