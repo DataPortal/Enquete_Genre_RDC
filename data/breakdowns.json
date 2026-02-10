@@ -1,19 +1,72 @@
-def safe_value_counts(df: pd.DataFrame, col: str, top: int = 20):
-    if df is None or df.empty or col not in df.columns:
-        return []
-    s = df[col].astype(str).replace("nan", "").replace("None", "").str.strip()
-    s = s[s != ""]
-    vc = s.value_counts().head(top)
-    return [{"label": k, "value": int(v)} for k, v in vc.items()]
+{
+  "by_ministere": [
+    { "label": "autre", "value": 1 },
+    { "label": "plan", "value": 1 }
+  ],
 
-def build_breakdowns(df: pd.DataFrame) -> dict:
-    # Toujours retourner un objet (dict), jamais une liste.
-    return {
-        "by_ministere": safe_value_counts(df, "ministere", 50),
-        "by_sexe": safe_value_counts(df, "sexe", 10),
-        "by_fonction": safe_value_counts(df, "fonction", 20),
-        "by_compr_genre": safe_value_counts(df, "compr_genre", 10),
-        "by_freq_formations": safe_value_counts(df, "frequence_formations_genre", 10),
-        "by_obstacles": safe_value_counts(df, "obstacles", 30),
-        "by_actions": safe_value_counts(df, "actions", 30),
-    }
+  "by_sexe": [
+    { "label": "feminin", "value": 1 },
+    { "label": "masculin", "value": 1 }
+  ],
+
+  "by_fonction": [
+    { "label": "autre", "value": 1 },
+    { "label": "ministre", "value": 1 }
+  ],
+
+  "by_compr_genre": [
+    { "label": "bonne", "value": 1 },
+    { "label": "faible", "value": 1 }
+  ],
+
+  "by_formation_genre": [
+    { "label": "oui", "value": 1 },
+    { "label": "non", "value": 1 }
+  ],
+
+  "by_diff_sexe_genre": [
+    { "label": "oui", "value": 2 }
+  ],
+
+  "by_cellule_genre": [
+    { "label": "oui", "value": 1 },
+    { "label": "non", "value": 1 }
+  ],
+
+  "by_plan_action_genre": [
+    { "label": "non", "value": 2 }
+  ],
+
+  "by_indicateurs_genre": [
+    { "label": "non", "value": 2 }
+  ],
+
+  "by_outils_guide_genre": [
+    { "label": "non", "value": 2 }
+  ],
+
+  "by_frequence_formations": [
+    { "label": "annuelle", "value": 2 }
+  ],
+
+  "by_importance_secteur": [
+    { "label": "oui", "value": 2 }
+  ],
+
+  "obstacles": [
+    { "label": "obs1", "value": 1 },
+    { "label": "obs2", "value": 1 },
+    { "label": "obs3", "value": 1 },
+    { "label": "obs4", "value": 2 },
+    { "label": "obs7", "value": 1 }
+  ],
+
+  "actions": [
+    { "label": "act1", "value": 1 },
+    { "label": "act2", "value": 2 },
+    { "label": "act3", "value": 1 },
+    { "label": "act4", "value": 2 },
+    { "label": "act5", "value": 1 },
+    { "label": "act6", "value": 1 }
+  ]
+}
