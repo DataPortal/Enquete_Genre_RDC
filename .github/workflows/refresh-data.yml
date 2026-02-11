@@ -1,0 +1,95 @@
+name: Refresh dashboard data
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas requests
+
+      - name: Ensure folders exist
+        run: |
+          mkdir -p data/raw site
+          touch data/.gitkeep
+          touch data/raw/.gitkeep
+
+      - name: Debug env presence (safe)
+        env:
+          KOBO_KF_URL: ${{ vars.KOBO_KF_URL }}
+          KOBO_ASSET_ID: ${{ vars.KOBO_ASSET_ID }}
+          KOBO_EXPORT_SETTING_UID: ${{ vars.KOBO_EXPORT_SETTING_UID }}
+          KOBO_API_TOKEN: ${{ secrets.KOBO_API_TOKEN }}
+        run: |
+          echo "KOBO_KF_URL length: ${#KOBO_KF_URL}"
+          echo "KOBO_ASSET_ID length: ${#KOBO_ASSET_ID}"
+          echo "KOBO_EXPORT_SETTING_UID length: ${#KOBO_EXPORT_SETTING_UID}"
+          if [ -z "$KOBO_API_TOKEN" ]; then echo "KOBO_API_TOKEN: EMPTY"; else echo "KOBO_API_TOKEN: OK"; fi
+
+      - name: Pull Kobo CSV (robust)
+        env:
+          KOBO_KF_URL: ${{ vars.KOBO_KF_URL }}
+          KOBO_ASSET_ID: ${{ vars.KOBO_ASSET_ID }}
+          KOBO_EXPORT_SETTING_UID: ${{ vars.KOBO_EXPORT_SETTING_UID }}
+          KOBO_API_TOKEN: ${{ secrets.KOBO_API_TOKEN }}
+        run: python scripts/01_fetch_kobo_csv.py
+
+      - name: Quick check
+        run: python scripts/03_quick_check.py
+
+      - name: Build JSON
+        run: python scripts/02_build_json.py
+
+      - name: Commit and push (robust)
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add data data/raw
+
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+
+          git commit -m "chore: refresh dashboard data"
+
+          # Rebase then push with retries (handles concurrent runs)
+          git pull --rebase origin main || true
+
+          for i in 1 2 3; do
+            if git push; then
+              echo "Pushed OK."
+              exit 0
+            fi
+            echo "Push failed (attempt $i). Rebase and retry..."
+            git pull --rebase origin main || true
+            sleep 2
+          done
+
+          echo "Push failed after retries."
+          exit 1
