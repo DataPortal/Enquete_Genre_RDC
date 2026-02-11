@@ -2,7 +2,7 @@ name: Refresh dashboard data
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # toutes les 5 minutes (best effort)
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,6 +31,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests
 
+      - name: Ensure data folders exist
+        run: |
+          mkdir -p data/raw
+          touch data/.gitkeep
+          touch data/raw/.gitkeep
+
       - name: Pull Kobo CSV (robust)
         env:
           KOBO_KF_URL: ${{ vars.KOBO_KF_URL }}
@@ -40,10 +46,10 @@ jobs:
           KOBO_API_TOKEN: ${{ secrets.KOBO_API_TOKEN }}
         run: python scripts/01_fetch_kobo_csv.py
 
-      - name: Quick check (fail if empty / html)
+      - name: Quick check
         run: python scripts/03_quick_check.py
 
-      - name: Build JSON (indicators/breakdowns/timeseries)
+      - name: Build JSON
         run: python scripts/02_build_json.py
 
       - name: Commit and push (robust)
@@ -52,7 +58,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add data/*.json data/raw/submissions.csv
+          git add data data/raw
 
           if git diff --cached --quiet; then
             echo "No changes."
@@ -61,17 +67,15 @@ jobs:
 
           git commit -m "chore: refresh dashboard data"
 
-          # Resolve non-fast-forward safely
-          git pull --rebase origin main || git pull --rebase origin master || true
+          git pull --rebase origin main || true
 
-          # Push with retry
           for i in 1 2 3; do
             if git push; then
               echo "Pushed OK."
               exit 0
             fi
             echo "Push failed (attempt $i). Rebase and retry..."
-            git pull --rebase origin main || git pull --rebase origin master || true
+            git pull --rebase origin main || true
             sleep 2
           done
 
