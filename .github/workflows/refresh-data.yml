@@ -47,19 +47,21 @@ jobs:
           mkdir -p data/raw
           touch data/.gitkeep
           touch data/raw/.gitkeep
-        - name: Debug env presence (safe)
-  env:
-    KOBO_KF_URL: ${{ vars.KOBO_KF_URL }}
-    KOBO_ASSET_ID: ${{ vars.KOBO_ASSET_ID }}
-    KOBO_EXPORT_SETTING_UID: ${{ vars.KOBO_EXPORT_SETTING_UID }}
-    KOBO_KC_USERNAME: ${{ vars.KOBO_KC_USERNAME }}
-    KOBO_API_TOKEN: ${{ secrets.KOBO_API_TOKEN }}
-  run: |
-    echo "KOBO_KF_URL length: ${#KOBO_KF_URL}"
-    echo "KOBO_ASSET_ID length: ${#KOBO_ASSET_ID}"
-    echo "KOBO_EXPORT_SETTING_UID length: ${#KOBO_EXPORT_SETTING_UID}"
-    echo "KOBO_KC_USERNAME length: ${#KOBO_KC_USERNAME}"
-    if [ -z "$KOBO_API_TOKEN" ]; then echo "KOBO_API_TOKEN: EMPTY"; else echo "KOBO_API_TOKEN: OK"; fi
+
+      - name: Debug env presence (safe)
+        env:
+          KOBO_KF_URL: ${{ vars.KOBO_KF_URL }}
+          KOBO_ASSET_ID: ${{ vars.KOBO_ASSET_ID }}
+          KOBO_EXPORT_SETTING_UID: ${{ vars.KOBO_EXPORT_SETTING_UID }}
+          KOBO_KC_USERNAME: ${{ vars.KOBO_KC_USERNAME }}
+          KOBO_API_TOKEN: ${{ secrets.KOBO_API_TOKEN }}
+        run: |
+          echo "KOBO_KF_URL length: ${#KOBO_KF_URL}"
+          echo "KOBO_ASSET_ID length: ${#KOBO_ASSET_ID}"
+          echo "KOBO_EXPORT_SETTING_UID length: ${#KOBO_EXPORT_SETTING_UID}"
+          echo "KOBO_KC_USERNAME length: ${#KOBO_KC_USERNAME}"
+          if [ -z "$KOBO_API_TOKEN" ]; then echo "KOBO_API_TOKEN: EMPTY"; else echo "KOBO_API_TOKEN: OK"; fi
+
       - name: Pull Kobo CSV (robust)
         env:
           KOBO_KF_URL: ${{ vars.KOBO_KF_URL }}
