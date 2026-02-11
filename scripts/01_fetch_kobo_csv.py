@@ -1,104 +1,92 @@
+from __future__ import annotations
+
 import os
 import sys
 import time
-import requests
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
 
-def die(msg: str, code: int = 1):
+import requests
+
+
+def die(msg: str, code: int = 1) -> None:
     print(msg, file=sys.stderr)
     raise SystemExit(code)
 
-def normalize_base(url: str) -> str:
-    url = (url or "").strip()
-    if not url:
-        return ""
-    parts = urlsplit(url)
-    scheme = parts.scheme or "https"
-    netloc = parts.netloc or parts.path
-    return urlunsplit((scheme, netloc, "", "", ""))
 
-def is_probably_html(resp: requests.Response) -> bool:
-    ct = (resp.headers.get("Content-Type") or "").lower()
-    if "text/html" in ct:
-        return True
-    head = (resp.content or b"")[:200].lstrip().lower()
-    return head.startswith(b"<!doctype html") or head.startswith(b"<html")
+def is_html(content: bytes) -> bool:
+    head = content[:300].lower()
+    return b"<html" in head or b"<!doctype" in head
 
-def write_bytes(path: Path, content: bytes):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(content)
 
-def try_download(url: str, headers: dict, timeout: int = 300) -> tuple[bool, str, bytes]:
-    r = requests.get(url, headers=headers, timeout=timeout)
-    if r.status_code != 200:
-        return False, f"{r.status_code} {r.text[:180]}", b""
-    if is_probably_html(r):
-        return False, "HTML returned (auth/redirect) instead of CSV", b""
-    if len(r.content) < 50:
-        return False, f"Too small payload ({len(r.content)} bytes)", b""
-    return True, f"OK ({len(r.content)} bytes)", r.content
-
-def main():
-    server = normalize_base(os.environ.get("KOBO_SERVER_URL", "https://kf.kobotoolbox.org"))
-    token  = (os.environ.get("KOBO_API_TOKEN") or "").strip()
-    asset  = (os.environ.get("KOBO_ASSET_ID") or "").strip()
-
-    if not server or not token or not asset:
-        die("Missing env vars: KOBO_SERVER_URL, KOBO_API_TOKEN, KOBO_ASSET_ID")
-
+def fetch(url: str, token: str, timeout: int = 180) -> requests.Response:
     headers = {"Authorization": f"Token {token}"}
-    out = Path("data/raw/submissions.csv")
+    return requests.get(url, headers=headers, timeout=timeout)
 
-    # 1) Asset JSON
-    asset_url = f"{server}/api/v2/assets/{asset}/"
-    r = requests.get(asset_url, headers=headers, timeout=60)
+
+def main() -> None:
+    token = (os.getenv("KOBO_API_TOKEN", "") or "").strip()
+    kf_url = (os.getenv("KOBO_KF_URL", "") or "").strip().rstrip("/")
+    asset = (os.getenv("KOBO_ASSET_ID", "") or "").strip()
+    export_uid = (os.getenv("KOBO_EXPORT_SETTING_UID", "") or "").strip()
+    kc_username = (os.getenv("KOBO_KC_USERNAME", "") or "").strip()
+
+    if not token or not kf_url or not asset:
+        die("Missing env vars: KOBO_API_TOKEN, KOBO_KF_URL, KOBO_ASSET_ID")
+
+    out_path = Path("data/raw/submissions.csv")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    candidates = []
+
+    # 1) Best: export-settings data.csv (exactly what your asset JSON shows)
+    if export_uid:
+        candidates.append(
+            f"{kf_url}/api/v2/assets/{asset}/export-settings/{export_uid}/data.csv"
+        )
+
+    # 2) Fallback: Kobo data endpoint (sometimes enabled)
+    candidates.append(f"{kf_url}/api/v2/assets/{asset}/data/?format=csv")
+
+    # 3) Fallback: KC report export.csv (needs username)
+    # This matches: https://kc.kobotoolbox.org/<username>/reports/<asset>/export.csv
+    if kc_username:
+        candidates.append(f"https://kc.kobotoolbox.org/{kc_username}/reports/{asset}/export.csv")
+
+    last_err = None
+
+    # Validate asset exists (fast diagnostic)
+    asset_url = f"{kf_url}/api/v2/assets/{asset}/"
+    r = fetch(asset_url, token, timeout=60)
     if r.status_code != 200:
-        die(f"ASSET check failed: {asset_url} -> {r.status_code} {r.text[:200]}")
-    asset_json = r.json()
+        die(f"Asset validation failed: GET {asset_url} -> {r.status_code} {r.text[:300]}")
 
-    sub_count = asset_json.get("deployment__submission_count")
-    print(f"Submission count (Kobo): {sub_count}")
+    for url in candidates:
+        try:
+            r = fetch(url, token, timeout=180)
+            if r.status_code != 200:
+                last_err = f"{url} -> {r.status_code} {r.text[:200]}"
+                continue
 
-    # 2) Try direct data endpoint (may 404 depending on Kobo)
-    direct_url = f"{server}/api/v2/assets/{asset}/data/?format=csv"
-    ok, msg, content = try_download(direct_url, headers, timeout=180)
-    print(f"[direct] {direct_url} -> {msg}")
-    if ok:
-        write_bytes(out, content)
-        return
+            content = r.content or b""
+            if len(content) < 50:
+                last_err = f"{url} -> 200 but content too small ({len(content)} bytes)"
+                continue
 
-    # 3) Preferred: export-settings data_url_csv (retries)
-    export_settings = asset_json.get("export_settings") or []
-    for es in export_settings:
-        data_url_csv = es.get("data_url_csv")
-        if not data_url_csv:
-            continue
+            if is_html(content):
+                last_err = f"{url} -> 200 but returned HTML (not CSV)."
+                continue
 
-        for attempt in range(1, 6):
-            ok, msg, content = try_download(data_url_csv, headers, timeout=300)
-            print(f"[export-settings] attempt {attempt}/5 {data_url_csv} -> {msg}")
-            if ok:
-                write_bytes(out, content)
-                return
-            time.sleep(5)
+            out_path.write_bytes(content)
+            print(f"Downloaded CSV OK: {url} -> {out_path} ({out_path.stat().st_size} bytes)")
+            return
 
-    # 4) Fallback: kc export.csv (retries)
-    ddl = asset_json.get("deployment__data_download_links") or {}
-    kc_csv = ddl.get("csv")
-    if kc_csv:
-        for attempt in range(1, 6):
-            ok, msg, content = try_download(kc_csv, headers, timeout=300)
-            print(f"[kc] attempt {attempt}/5 {kc_csv} -> {msg}")
-            if ok:
-                write_bytes(out, content)
-                return
-            time.sleep(5)
+        except Exception as e:
+            last_err = f"{url} -> exception: {e}"
 
-    # 5) If Kobo claims submissions exist but export still empty, keep pipeline alive by writing empty file
-    print("WARN: Could not fetch a valid CSV. Writing empty placeholder to keep pipeline running.")
-    write_bytes(out, b"")
-    return
+        time.sleep(1)
+
+    die(f"CSV export failed on all candidate URLs. Last error: {last_err}")
+
 
 if __name__ == "__main__":
     main()
