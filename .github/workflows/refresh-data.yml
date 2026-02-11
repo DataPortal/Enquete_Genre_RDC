@@ -2,90 +2,77 @@ name: Refresh dashboard data
 
 on:
   schedule:
-    # Toutes les 5 minutes
-    - cron: "*/5 * * * *"
+    - cron: "*/5 * * * *"   # toutes les 5 minutes (best effort)
   workflow_dispatch:
 
-# Empêche plusieurs workflows de pousser en même temps
+permissions:
+  contents: write
+
 concurrency:
-  group: refresh-dashboard-data
+  group: refresh-data
   cancel-in-progress: true
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install pandas requests
 
-      - name: Set Kobo environment variables
-        shell: bash
-        run: |
-          echo "KOBO_SERVER_URL=https://kf.kobotoolbox.org" >> $GITHUB_ENV
-          echo "KOBO_ASSET_ID=afJi5aBdhBgdJSGu3pVZXj" >> $GITHUB_ENV
-          echo "KOBO_API_TOKEN=${{ secrets.KOBO_API_TOKEN }}" >> $GITHUB_ENV
-
-      - name: Pull Kobo CSV
+      - name: Pull Kobo CSV (robust)
+        env:
+          KOBO_KF_URL: ${{ vars.KOBO_KF_URL }}
+          KOBO_ASSET_ID: ${{ vars.KOBO_ASSET_ID }}
+          KOBO_EXPORT_SETTING_UID: ${{ vars.KOBO_EXPORT_SETTING_UID }}
+          KOBO_KC_USERNAME: ${{ vars.KOBO_KC_USERNAME }}
+          KOBO_API_TOKEN: ${{ secrets.KOBO_API_TOKEN }}
         run: python scripts/01_fetch_kobo_csv.py
 
-      - name: Quick check (non-blocking)
+      - name: Quick check (fail if empty / html)
         run: python scripts/03_quick_check.py
 
-      - name: Build JSON
+      - name: Build JSON (indicators/breakdowns/timeseries)
         run: python scripts/02_build_json.py
 
       - name: Commit and push (robust)
-        shell: bash
         run: |
           set -e
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add data/*.json data/raw/submissions.csv || true
+          git add data/*.json data/raw/submissions.csv
 
           if git diff --cached --quiet; then
-            echo "No changes to commit."
+            echo "No changes."
             exit 0
           fi
 
           git commit -m "chore: refresh dashboard data"
 
-          # Synchronise avec le dépôt distant
-          git fetch origin main
+          # Resolve non-fast-forward safely
+          git pull --rebase origin main || git pull --rebase origin master || true
 
-          # Tentative de rebase + push avec retry
+          # Push with retry
           for i in 1 2 3; do
-            echo "Attempt $i: rebase and push"
-            
-            if git rebase origin/main; then
-              if git push origin HEAD:main; then
-                echo "Push succeeded."
-                exit 0
-              fi
+            if git push; then
+              echo "Pushed OK."
+              exit 0
             fi
-
-            echo "Retry $i failed. Resetting and retrying..."
-            git rebase --abort || true
-            git reset --hard origin/main
-
-            git add data/*.json data/raw/submissions.csv || true
-            git commit -m "chore: refresh dashboard data" || true
-            git fetch origin main
+            echo "Push failed (attempt $i). Rebase and retry..."
+            git pull --rebase origin main || git pull --rebase origin master || true
+            sleep 2
           done
 
           echo "Push failed after retries."
