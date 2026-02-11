@@ -1,18 +1,3 @@
-# scripts/02_build_json.py
-# Kobo CSV -> JSON outputs for GitHub Pages dashboard
-#
-# Outputs:
-#   data/indicators.json  (DICT)
-#   data/breakdowns.json  (DICT)
-#   data/timeseries.json  (LIST of {date,count})
-#
-# Robust to:
-# - UTF-8 / latin-1 encoding issues
-# - empty CSV / header-only CSV
-# - missing columns
-# - Kobo select_multiple stored as "opt1 opt2 opt3"
-# - multiple Kobo datetime formats for _submission_time
-
 from __future__ import annotations
 
 import json
@@ -21,17 +6,14 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-
 CSV_PATH = Path("data/raw/submissions.csv")
 OUT_DIR = Path("data")
 
-# Kobo columns (based on what you've shared)
 COL = {
     "consent": "consent",
     "ministere": "ministere",
     "sexe": "sexe",
     "fonction": "fonction",
-    "annees_exp": "annees_experience_ministere",
     "formation_genre": "formation_genre",
     "compr_genre": "compr_genre",
     "diff_sexe_genre": "diff_sexe_genre",
@@ -49,30 +31,20 @@ COL = {
     "actions": "actions",
     "gtg_connaissance": "gtg_connaissance",
     "_submission_time": "_submission_time",
-    "_id": "_id",
 }
-
 
 def ensure_out_dir() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-
 def write_json(path: Path, obj: Any) -> None:
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding="utf-8")
 
-
 def read_csv_robust(path: Path) -> pd.DataFrame:
-    """
-    Try a few encodings; Kobo exports can include weird chars.
-    If file missing or tiny -> empty dataframe.
-    """
     if not path.exists() or path.stat().st_size < 5:
         return pd.DataFrame()
 
-    # Quick guard: if file starts with HTML, it's not a CSV export
     head = path.read_bytes()[:200].lower()
     if b"<html" in head or b"<!doctype" in head:
-        # Return empty; upstream fetch script should be fixed
         return pd.DataFrame()
 
     for enc in ("utf-8", "utf-8-sig", "latin-1"):
@@ -83,32 +55,23 @@ def read_csv_robust(path: Path) -> pd.DataFrame:
         except Exception:
             continue
 
-    # last resort
     return pd.read_csv(path, encoding="latin-1", engine="python", on_bad_lines="skip")
-
 
 def clean_df(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return pd.DataFrame()
 
-    # normalize columns
     df.columns = [str(c).strip() for c in df.columns]
 
-    # strip strings (do not convert NaN to "nan" here)
-    for c in df.columns:
-        if df[c].dtype == "object":
-            df[c] = df[c].astype(str).str.strip()
-
-    # keep only consent == oui if present
+    # keep only consent == oui (if present)
     if COL["consent"] in df.columns:
-        df = df[df[COL["consent"]].astype(str).str.strip().str.lower().eq("oui")]
+        consent = df[COL["consent"]].astype(str).str.strip().str.lower()
+        df = df[consent.eq("oui")].copy()
 
     return df
 
-
 def pct(part: float, total: float) -> float:
     return round((part / total) * 100, 1) if total and total > 0 else 0.0
-
 
 def safe_series(df: pd.DataFrame, col: str) -> pd.Series:
     if df is None or df.empty or col not in df.columns:
@@ -120,7 +83,6 @@ def safe_series(df: pd.DataFrame, col: str) -> pd.Series:
     s = s[s != ""]
     return s
 
-
 def safe_value_counts(df: pd.DataFrame, col: str, top: int = 50) -> List[Dict[str, Any]]:
     s = safe_series(df, col)
     if s.empty:
@@ -128,12 +90,7 @@ def safe_value_counts(df: pd.DataFrame, col: str, top: int = 50) -> List[Dict[st
     vc = s.value_counts().head(top)
     return [{"label": str(k), "value": int(v)} for k, v in vc.items()]
 
-
 def safe_multi_counts(df: pd.DataFrame, col: str, top: int = 50) -> List[Dict[str, Any]]:
-    """
-    Kobo select_multiple is typically "opt1 opt2 opt3"
-    We split on whitespace and count tokens.
-    """
     s = safe_series(df, col)
     if s.empty:
         return []
@@ -149,97 +106,61 @@ def safe_multi_counts(df: pd.DataFrame, col: str, top: int = 50) -> List[Dict[st
     vc = pd.Series(tokens, dtype="object").value_counts().head(top)
     return [{"label": str(k), "value": int(v)} for k, v in vc.items()]
 
-
 def build_indicators(df: pd.DataFrame) -> Dict[str, Any]:
-    """
-    indicators.json is a DICT (not a list) to make front-end binding easier.
-    """
     if df is None or df.empty:
-        return {
-            "total_responses": 0,
-            "female_respondents": 0,
-            "male_respondents": 0,
-            "pct_female": 0,
-            "pct_male": 0,
-            "ministries_covered": 0,
-            "trained_on_gender": {"yes": 0, "no": 0, "pct_yes": 0},
-            "gender_knowledge": {"good": 0, "average": 0, "low": 0},
-            "knows_sex_gender_difference": {"yes": 0, "no": 0, "pct_yes": 0},
-            "genre_not_biological_correct": {"correct": 0, "incorrect": 0, "pct_correct": 0},
-            "knows_gender_policies": {"yes": 0, "no": 0, "pct_yes": 0},
-            "gender_important_public_policies": {"yes": 0, "no": 0, "pct_yes": 0},
-            "has_gender_unit": {"yes": 0, "no": 0, "pct_yes": 0},
-            "has_gender_action_plan": {"yes": 0, "no": 0, "partial": 0},
-            "has_gender_indicators": {"yes": 0, "no": 0, "partial": 0},
-            "has_gender_guides": {"yes": 0, "no": 0, "pct_yes": 0},
-            "gender_budget": {"with_budget": 0, "without_budget": 0, "avg_budget_pct": 0},
-            "knows_GTG": {"yes": 0, "no": 0, "pct_yes": 0},
-        }
+        return {"total_responses": 0}
 
     total = int(len(df))
 
-    # Sexe
     sexe = safe_series(df, COL["sexe"]).str.lower()
     female = int((sexe == "feminin").sum())
     male = int((sexe == "masculin").sum())
 
-    # Ministries
     ministries_covered = int(df[COL["ministere"]].nunique()) if COL["ministere"] in df.columns else 0
 
-    # Formation genre
     fg = safe_series(df, COL["formation_genre"]).str.lower()
     fg_yes = int((fg == "oui").sum())
     fg_no = int((fg == "non").sum())
 
-    # Compréhension genre
     cg = safe_series(df, COL["compr_genre"]).str.lower()
     cg_good = int((cg == "bonne").sum())
     cg_avg = int((cg == "moyenne").sum())
     cg_low = int((cg == "faible").sum())
 
-    # Diff sexe/genre
     dsg = safe_series(df, COL["diff_sexe_genre"]).str.lower()
     dsg_yes = int((dsg == "oui").sum())
     dsg_no = int((dsg == "non").sum())
 
-    # "Le genre est biologique" -> correct answer is "faux"
     gb = safe_series(df, COL["genre_biologique"]).str.lower()
-    gb_correct = int((gb == "faux").sum())
+    gb_correct = int((gb == "faux").sum())   # correct is "faux"
     gb_incorrect = int((gb == "vrai").sum())
 
-    # Politiques genre
     pg = safe_series(df, COL["politiques_connaissance"]).str.lower()
     pg_yes = int((pg == "oui").sum())
     pg_no = int((pg == "non").sum())
 
-    # Importance genre en politiques publiques
     ipp = safe_series(df, COL["importance_pol_pub"]).str.lower()
     ipp_yes = int((ipp == "oui").sum())
     ipp_no = int((ipp == "non").sum())
 
-    # Cellule genre
-    cg_unit = safe_series(df, COL["cellule_genre"]).str.lower()
-    unit_yes = int((cg_unit == "oui").sum())
-    unit_no = int((cg_unit == "non").sum())
+    unit = safe_series(df, COL["cellule_genre"]).str.lower()
+    unit_yes = int((unit == "oui").sum())
+    unit_no = int((unit == "non").sum())
 
-    # Plan d'action genre (oui/non/np)
     pag = safe_series(df, COL["plan_action_genre"]).str.lower()
     pag_yes = int((pag == "oui").sum())
     pag_no = int((pag == "non").sum())
     pag_np = int((pag == "np").sum())
 
-    # Indicateurs genre (oui/non/np)
     ig = safe_series(df, COL["indicateurs_genre"]).str.lower()
     ig_yes = int((ig == "oui").sum())
     ig_no = int((ig == "non").sum())
     ig_np = int((ig == "np").sum())
 
-    # Outils / guides
     og = safe_series(df, COL["outils_guide_genre"]).str.lower()
     og_yes = int((og == "oui").sum())
     og_no = int((og == "non").sum())
 
-    # Budget genre annuel (%)
     budget_avg = 0.0
     with_budget = 0
     without_budget = total
@@ -249,7 +170,6 @@ def build_indicators(df: pd.DataFrame) -> Dict[str, Any]:
         without_budget = int(total - with_budget)
         budget_avg = round(float(b.dropna().mean()), 1) if with_budget > 0 else 0.0
 
-    # GTG
     gtg = safe_series(df, COL["gtg_connaissance"]).str.lower()
     gtg_yes = int((gtg == "oui").sum())
     gtg_no = int((gtg == "non").sum())
@@ -264,11 +184,7 @@ def build_indicators(df: pd.DataFrame) -> Dict[str, Any]:
         "trained_on_gender": {"yes": fg_yes, "no": fg_no, "pct_yes": pct(fg_yes, total)},
         "gender_knowledge": {"good": cg_good, "average": cg_avg, "low": cg_low},
         "knows_sex_gender_difference": {"yes": dsg_yes, "no": dsg_no, "pct_yes": pct(dsg_yes, total)},
-        "genre_not_biological_correct": {
-            "correct": gb_correct,
-            "incorrect": gb_incorrect,
-            "pct_correct": pct(gb_correct, total),
-        },
+        "genre_not_biological_correct": {"correct": gb_correct, "incorrect": gb_incorrect, "pct_correct": pct(gb_correct, total)},
         "knows_gender_policies": {"yes": pg_yes, "no": pg_no, "pct_yes": pct(pg_yes, total)},
         "gender_important_public_policies": {"yes": ipp_yes, "no": ipp_no, "pct_yes": pct(ipp_yes, total)},
         "has_gender_unit": {"yes": unit_yes, "no": unit_no, "pct_yes": pct(unit_yes, total)},
@@ -279,11 +195,7 @@ def build_indicators(df: pd.DataFrame) -> Dict[str, Any]:
         "knows_GTG": {"yes": gtg_yes, "no": gtg_no, "pct_yes": pct(gtg_yes, total)},
     }
 
-
 def build_breakdowns(df: pd.DataFrame) -> Dict[str, Any]:
-    """
-    breakdowns.json is a DICT; values are arrays.
-    """
     if df is None or df.empty:
         return {
             "by_ministere": [],
@@ -319,15 +231,7 @@ def build_breakdowns(df: pd.DataFrame) -> Dict[str, Any]:
         "actions": safe_multi_counts(df, COL["actions"], 50),
     }
 
-
 def build_timeseries(df: pd.DataFrame) -> List[Dict[str, Any]]:
-    """
-    timeseries.json is a LIST of {date, count}
-    Robust to multiple Kobo datetime formats, incl:
-    - "10/02/2026 09:18"
-    - "2026-02-10T09:18:47.762Z"
-    - "2026-02-10 10:07:50.951000+01:00"
-    """
     if df is None or df.empty:
         return []
 
@@ -341,10 +245,7 @@ def build_timeseries(df: pd.DataFrame) -> List[Dict[str, Any]]:
     if s.empty:
         return []
 
-    # Try parse with dayfirst (FR), then fall back to generic parsing
     ts = pd.to_datetime(s, errors="coerce", dayfirst=True, utc=True)
-
-    # If still all NaT, try without utc/dayfirst
     if ts.notna().sum() == 0:
         ts = pd.to_datetime(s, errors="coerce")
 
@@ -355,7 +256,6 @@ def build_timeseries(df: pd.DataFrame) -> List[Dict[str, Any]]:
     tmp["_date"] = tmp["_ts"].dt.date.astype(str)
     g = tmp.groupby("_date").size().reset_index(name="count").sort_values("_date")
     return [{"date": str(r["_date"]), "count": int(r["count"])} for _, r in g.iterrows()]
-
 
 def main() -> None:
     ensure_out_dir()
@@ -371,24 +271,11 @@ def main() -> None:
     write_json(OUT_DIR / "breakdowns.json", breakdowns)
     write_json(OUT_DIR / "timeseries.json", timeseries)
 
-    print(
-        "OK build_json:",
-        {
-            "csv_exists": CSV_PATH.exists(),
-            "csv_bytes": CSV_PATH.stat().st_size if CSV_PATH.exists() else 0,
-            "rows_after_consent_filter": int(len(df)) if df is not None else 0,
-            "submission_time_present": (COL["_submission_time"] in df.columns) if df is not None and not df.empty else False,
-            "submission_time_head": (
-                df[COL["_submission_time"]].head(3).astype(str).tolist()
-                if df is not None and not df.empty and (COL["_submission_time"] in df.columns)
-                else []
-            ),
-            "indicators_keys": len(indicators.keys()) if isinstance(indicators, dict) else None,
-            "breakdowns_keys": len(breakdowns.keys()) if isinstance(breakdowns, dict) else None,
-            "timeseries_points": len(timeseries) if isinstance(timeseries, list) else None,
-        },
-    )
-
+    print("OK build_json:", {
+        "csv_bytes": CSV_PATH.stat().st_size if CSV_PATH.exists() else 0,
+        "rows_after_consent_filter": int(len(df)) if df is not None else 0,
+        "timeseries_points": len(timeseries),
+    })
 
 if __name__ == "__main__":
     main()
