@@ -31,6 +31,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install pandas requests
 
+      - name: Debug gitignore
+        run: |
+          echo "=== .gitignore ==="
+          if [ -f .gitignore ]; then
+            cat .gitignore
+          else
+            echo "No .gitignore file found."
+          fi
+          echo "=== git status ==="
+          git status --porcelain || true
+
       - name: Ensure data folders exist
         run: |
           mkdir -p data/raw
@@ -59,6 +70,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add data data/raw
+
+          echo "=== staged changes ==="
+          git diff --cached --name-only || true
 
           if git diff --cached --quiet; then
             echo "No changes."
